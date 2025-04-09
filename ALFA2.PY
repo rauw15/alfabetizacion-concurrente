@@ -5,12 +5,26 @@ import threading
 import queue
 from threading import Lock
 import time
+import pygame
+import pyttsx3
 
 class AlphabetHero:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("¡Aventuras con las Letras!")
         self.root.geometry("1024x768")
+        pygame.mixer.init()
+        self.engine = pyttsx3.init()
+        voices = self.engine.getProperty('voices')
+        
+
+    
+    # Buscar voz en español (generalmente la voz en español tiene 'spanish' en su nombre)
+        for voice in voices:
+            if 'spanish' in voice.name.lower():
+                self.engine.setProperty('voice', voice.id)
+                break
+        self.is_speaking = False 
         
         # Variables del juego
         self.score = 0
@@ -279,25 +293,43 @@ class AlphabetHero:
         for widget in self.play_area.winfo_children():
             widget.destroy()
 
+    def clear_play_area(self):
+        for widget in self.play_area.winfo_children():
+            widget.destroy()
+
     def vowel_game(self):
         self.clear_play_area()
         
         vowels = ['A', 'E', 'I', 'O', 'U']
         self.current_vowel = random.choice(vowels)
         
-        tk.Label(
+        label = tk.Label(
             self.play_area,
             text=f"¡Encuentra la vocal {self.current_vowel}!",
             font=('Arial', 30),
             bg='#E0FFFF'
-        ).pack(pady=20)
-        
+        )
+        label.pack(pady=20)
+        label.bind("<Enter>", lambda event: self.delayed_play_vowel_sound(self.current_vowel))
         balloon_frame = tk.Frame(self.play_area, bg='#E0FFFF')
         balloon_frame.pack(expand=True)
         
         random.shuffle(vowels)
         for vowel in vowels:
             self.create_balloon(balloon_frame, vowel)
+
+    def play_vowel_sound(self, letter):
+        try:
+            if pygame.mixer.music.get_busy():
+                return
+            pygame.mixer.music.load(f"./audios/vowel_game{letter.lower()}.wav")
+            pygame.mixer.music.play()
+        except Exception as e:
+            print(f"Error al reproducir el sonido: {e}")
+
+    def delayed_play_vowel_sound(self, letter):
+        # Agrega un retraso de 0.5 segundos antes de reproducir el sonido
+        self.root.after(500, self.play_vowel_sound, letter)     
 
     def create_balloon(self, parent, letter):
         colors = ['#FF69B4', '#FF6347', '#4169E1', '#32CD32', '#FFD700']
@@ -311,6 +343,16 @@ class AlphabetHero:
             command=lambda: self.check_vowel(letter)
         )
         btn.pack(side=tk.LEFT, padx=20)
+        btn.bind("<Enter>", lambda event, ltr=letter: self.play_vowel_Vocal(ltr))
+
+    def play_vowel_Vocal(self, letter):
+        try:
+            
+            pygame.mixer.music.load(f"./audios/{letter.lower()}.mp3")
+            pygame.mixer.music.play()
+        except Exception as e:
+            print(f"Error al reproducir el sonido: {e}")
+
 
     def check_vowel(self, selected_vowel):
         if selected_vowel == self.current_vowel:
@@ -329,12 +371,14 @@ class AlphabetHero:
         syllables = ['MA', 'ME', 'MI', 'MO', 'MU', 'PA', 'PE', 'PI', 'PO', 'PU']
         self.current_syllable = random.choice(syllables)
         
-        tk.Label(
+        label=tk.Label(
             self.play_area,
             text=f"¡Encuentra la sílaba {self.current_syllable}!",
             font=('Arial', 30),
             bg='#E0FFFF'
-        ).pack(pady=20)
+        )
+        label.pack(pady=20)
+        label.bind("<Enter>", lambda event: self.delayed_play_syllable_sound(self.current_syllable))
         
         syllable_frame = tk.Frame(self.play_area, bg='#E0FFFF')
         syllable_frame.pack(expand=True)
@@ -346,6 +390,21 @@ class AlphabetHero:
         
         for syllable in game_syllables:
             self.create_syllable_button(syllable_frame, syllable)
+
+    def delayed_play_syllable_sound(self, letter):
+        # Agrega un retraso de 0.5 segundos antes de reproducir el sonido
+        self.root.after(500, self.play_syllable_sound, letter) 
+
+    def play_syllable_sound(self, letter):
+        try:
+            if pygame.mixer.music.get_busy():
+                return
+            pygame.mixer.music.load(f"./audios/syllable_game{letter.lower()}.wav")
+            pygame.mixer.music.play()
+        except Exception as e:
+            print(f"Error al reproducir el sonido: {e}")
+
+
 
     def create_syllable_button(self, parent, syllable):
         colors = ['#FF69B4', '#FF6347', '#4169E1', '#32CD32', '#FFD700']
@@ -359,6 +418,16 @@ class AlphabetHero:
             command=lambda: self.check_syllable(syllable)
         )
         btn.pack(side=tk.LEFT, padx=10)
+        btn.bind("<Enter>", lambda event, ltr=syllable: self.play_syllable_Vocal(ltr))
+
+    def play_syllable_Vocal(self, syllable):
+        try:
+            
+            pygame.mixer.music.load(f"./audios/{syllable.lower()}.mp3")
+            pygame.mixer.music.play()
+        except Exception as e:
+            print(f"Error al reproducir el sonido: {e}")
+
 
     def check_syllable(self, selected_syllable):
         if selected_syllable == self.current_syllable:
@@ -385,20 +454,24 @@ class AlphabetHero:
         self.current_word = random.choice(list(words.keys()))
         self.word_display = ["_"] * len(self.current_word)
         
-        tk.Label(
+        label1=tk.Label(
             self.play_area,
             text="¡Forma la palabra!",
             font=('Arial', 30),
             bg='#E0FFFF'
-        ).pack(pady=10)
+        )
+        label1.pack(pady=10)
+        label1.bind("<Enter>", self.speak_widget_text)
         
-        tk.Label(
+        label2=tk.Label(
             self.play_area,
             text=f"Pista: {words[self.current_word]}",
             font=('Arial', 25),
             bg='#E0FFFF',
             wraplength=600
-        ).pack(pady=10)
+        )
+        label2.pack(pady=10)
+        label2.bind("<Enter>", self.speak_widget_text)
         
         tk.Label(
             self.play_area,
@@ -452,6 +525,19 @@ class AlphabetHero:
             bg='#4169E1',
             fg='white'
         ).pack(side=tk.LEFT, padx=10)
+        
+    def speak_widget_text(self, event):
+        widget = event.widget
+        text = widget.cget("text")  # Accede al texto del widget
+        
+        if self.is_speaking:
+            self.engine.stop()  # Detener el audio actual si ya está hablando
+            self.is_speaking = False  # Reiniciar la bandera
+
+        # Reproducir el nuevo texto
+        self.engine.say(text)
+        self.engine.runAndWait()  # Espera hasta que termine de hablar
+        self.is_speaking = True  # Marcar que ahora está hablando
 
     def check_letter(self, event):
         current_text = self.word_entry.get().upper()
